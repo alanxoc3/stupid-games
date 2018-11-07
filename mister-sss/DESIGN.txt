@@ -1,0 +1,14 @@
+This file is for ideas... what to do for designs... questions... etc. Goes along with google document for Mister SSS.
+Anyone can edit/post suggestions/answer questions.
+
+Q. Do we want a center coordinate that offsets the x and y coordinate, so that the x and y pretends to be the centered coordinate.
+A. Yes, we do. That would be useful. We would need to have a center method as well... probably...
+
+The other question is how would this offset center thing work?
+I suppose this partly goes to the implementation part.
+
+The default x and y could be up to the user, or specified at the top left corner, the width and height. Then the offset could be coordinates going from the top left 
+
+Q. How would we check if the current "thing" is an enemy or not.
+A. Have the type ids of each class in the constant file be close in number, then have a function that returns true if the type inherits that class.
+

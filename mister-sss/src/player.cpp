@@ -1,0 +1,342 @@
+// player.cpp 
+#include "player.h"
+
+/********************************************************************
+ * Default Constructor
+ * 	Set up a few things.
+ ********************************************************************/
+Player :: Player() : Living() {
+	setFacing(FACE_DOWN);
+	setFriction(DEF_FRICTION);
+	xHeld = 0;
+	yHeld = 0;
+	rect1.setWH(PLAYER_HAND_DIM, PLAYER_HAND_DIM);
+	rect2.setWH(PLAYER_HAND_DIM, PLAYER_HAND_DIM);
+
+	setMaxSpeed(PLAYER_MAXSPEED);
+	setWH(PLAYER_DIM, PLAYER_DIM);
+	setZ(Z_PLAYER);
+	setMaxHP(PLAYER_MAXHP);
+	setHP(20);
+	heal();
+	hand.setZ(Z_PLAYER);
+}
+
+/********************************************************************
+ * input()
+ * 	Sets motion to the object, may do other things, according to
+ * 	user input.
+ ********************************************************************/
+void Player :: input(const Input & in) {
+	// STEP 1: MULTIPLE KEYS
+	if (in.down(in.KEY_A) && in.down(in.KEY_D) &&
+			in.down(in.KEY_W) && in.down(in.KEY_S)) {
+		setHS(0.0f);
+		setVS(0.0f);
+
+	} else if (in.down(in.KEY_W) && in.down(in.KEY_A)) {
+		upToMaxDegSpeed(135.0f, getMaxSpeed(), getMaxSpeed());
+		if (getFacing() != FACE_LEFT && getFacing() != FACE_UP) {
+			setFacing(FACE_LEFT);
+			xHeld = 1;
+		}
+
+	} else if (in.down(in.KEY_W) && in.down(in.KEY_D)) {
+		upToMaxDegSpeed(45.0f, getMaxSpeed(), getMaxSpeed());
+		if (getFacing() != FACE_RIGHT && getFacing() != FACE_UP) {
+			setFacing(FACE_UP);
+			yHeld = 1;
+		}
+
+	} else if (in.down(in.KEY_D) && in.down(in.KEY_S)) {
+		upToMaxDegSpeed(-45.0f, getMaxSpeed(), getMaxSpeed());
+		if (getFacing() != FACE_RIGHT && getFacing() != FACE_DOWN) {
+			setFacing(FACE_RIGHT);
+			xHeld = 1;
+		}
+
+	} else if (in.down(in.KEY_A) && in.down(in.KEY_S)) {
+		upToMaxDegSpeed(-135.0f, getMaxSpeed(), getMaxSpeed());
+		if (getFacing() != FACE_LEFT && getFacing() != FACE_DOWN) {
+			setFacing(FACE_DOWN);
+			yHeld = 1;
+		}
+
+	} else if (in.down(in.KEY_A) && in.down(in.KEY_D)) {
+		setHS(0.0f);
+		xHeld = 0;
+
+	} else if (in.down(in.KEY_W) && in.down(in.KEY_S)) {
+		setVS(0.0f);
+		yHeld = 0;
+
+	} else {
+	// STEP 2: SINGLE KEYS
+		if (in.down(in.KEY_A)) {
+			upToMaxHS(-getMaxSpeed(), getMaxSpeed());
+			setFacing(FACE_LEFT);
+			xHeld = 1;
+		} else if (in.down(in.KEY_D)) {
+			upToMaxHS(getMaxSpeed(), getMaxSpeed());
+			setFacing(FACE_RIGHT);
+			xHeld = 1;
+		} else {
+			setHS(getHS() * getFriction());
+			xHeld = 0;
+		}
+
+		if (in.down(in.KEY_W)) {
+			upToMaxVS(getMaxSpeed(), getMaxSpeed());
+			setFacing(FACE_UP);
+			yHeld = 1;
+		} else if (in.down(in.KEY_S)) {
+			upToMaxVS(-getMaxSpeed(), getMaxSpeed());
+			setFacing(FACE_DOWN);
+			yHeld = 1;
+		} else {
+			setVS(getVS() * getFriction());
+			yHeld = 0;
+		}
+	}
+
+	// Figure out getFacing() sub image.
+	const short down  = 0 * 3;
+	const short left  = 1 * 3;
+	const short up    = 2 * 3;
+	const short right = 3 * 3;
+	const unsigned xOff = 6 * 16 + 2 * xHeld;
+	const unsigned yOff = 6 * 16 + 2 * yHeld;
+
+	     if (getFacing() == FACE_UP)    { setSubImage(up    + yOff); }
+	else if (getFacing() == FACE_LEFT)  { setSubImage(left  + xOff); }
+	else if (getFacing() == FACE_RIGHT) { setSubImage(right + xOff); }
+	else if (getFacing() == FACE_DOWN)  { setSubImage(down  + yOff); }
+}
+
+/********************************************************************
+ * updateHand()
+ * 	Updates the Speed and image of the hand. Calling after
+ * 	collisions works best, because this uses the players speed/
+ * 	position to calculate where to go.
+ ********************************************************************/
+void Player :: updateHand(const Grid & grid) {
+	updateHandTemplate(grid, rect1, PLAYER_HAND1_GAP, PLAYER_HAND1_SPEED);
+	updateHandTemplate(grid, rect2, PLAYER_HAND2_GAP, PLAYER_HAND2_SPEED);
+}
+
+/********************************************************************
+ * updateHandTemplate()
+ * 	A private method, helps create multiple collision boxes.
+ ********************************************************************/
+void Player :: updateHandTemplate(const Grid & grid, Rectangle & handRect, float gap, float speed) {
+	unsigned xPos = 0;
+	unsigned yPos = 0;
+	char state = 0;
+
+	state = grid.getOverallState(xPos, yPos);
+
+	assert (state != grid.NONE);
+
+	float px = getX();
+	float py = getY();
+	float pw = getW();
+	float ph = getH();
+	float xGap = gap * cos(PI / 4.0f);
+	float yGap = gap * sin(PI / 4.0f);
+	float rw = handRect.getW();
+	float rh = handRect.getH();
+
+	float aimx, aimy;
+
+	if (xPos == 0) {
+		aimx  = px - rw / 2.0f;
+		aimx -= handRect.getCX();
+		aimx -= (yPos == 1) ? gap : xGap;
+	} else if (xPos == 1) {
+		aimx  = getCX();
+		aimx -= handRect.getCX();
+	} else if (xPos == 2) {
+		aimx  = px + pw + rw / 2.0f;
+		aimx -= handRect.getCX();
+		aimx += (yPos == 1) ? gap : xGap;
+	} else {
+		aimx = 0.0f;
+	}
+
+	if (yPos == 0) {
+		aimy  = py - rh / 2.0f;
+		aimy -= handRect.getCY();
+		aimy -= (xPos == 1) ? gap : yGap;
+	} else if (yPos == 1) {
+		aimy  = getCY();
+		aimy -= handRect.getCY();
+	} else if (yPos == 2) {
+		aimy  = py + ph + rh / 2.0f;
+		aimy -= handRect.getCY();
+		aimy += (xPos == 1) ? gap : yGap;
+	} else {
+		aimy = 0.0f;
+	}
+	
+	// So it cannot hit anything.
+	if (xPos == 1 && yPos == 1) {
+		handRect.setWH(0.0f, 0.0f);
+	} else {
+		handRect.setWH(PLAYER_HAND_DIM, PLAYER_HAND_DIM);
+	}
+
+	float tstX = cos(PI / 4.0f) * aimx;
+	float tstY = sin(PI / 4.0f) * aimy;
+
+	if (tstX > speed)
+		aimx = cos(PI / 4.0f) * speed;
+	else if (tstX < -speed)
+		aimx = -cos(PI / 4.0f) * speed;
+
+	if (tstY > speed)
+		aimy = sin(PI / 4.0f) * speed;
+	else if (tstY < -speed)
+		aimy = -sin(PI / 4.0f) * speed;
+
+	handRect.setHS(aimx + getHS());
+	handRect.setVS(aimy + getVS());
+
+	//handRect.move();
+
+	figureOutHandImage(xPos, yPos);
+}
+
+/********************************************************************
+ * figureOutHandImage()
+ * 	A private method called by update hand. Sets the hand image
+ * 	to the correct one, based on the current grid position.
+ ********************************************************************/
+void Player :: figureOutHandImage(const unsigned & xpos, const unsigned & ypos) {
+// Ready for a bunch of if statements?
+	unsigned base = 16;
+
+	     if (xpos == 1 && ypos == 0) { hand.setSubImage( base +  0 * 2 ); } 
+	else if (xpos == 2 && ypos == 0) { hand.setSubImage( base +  1 * 2 ); } 
+	else if (xpos == 2 && ypos == 1) { hand.setSubImage( base +  2 * 2); } 
+	else if (xpos == 2 && ypos == 2) { hand.setSubImage( base +  3 * 2); } 
+	else if (xpos == 1 && ypos == 2) { hand.setSubImage( base +  4 * 2); } 
+	else if (xpos == 0 && ypos == 2) { hand.setSubImage( base +  5 * 2); } 
+	else if (xpos == 0 && ypos == 1) { hand.setSubImage( base +  6 * 2); } 
+	else if (xpos == 0 && ypos == 0) { hand.setSubImage( base +  7 * 2); }
+	else if (xpos == 1 && ypos == 1) { hand.setSubImage( base * 2 +  7 * 2); }
+
+	hand.setIX(getX() + getIX() + getHS());
+	hand.setIY(getY() + getIY() + getVS());
+}
+
+/********************************************************************
+ * normalMode()
+ * 	Set to Normal Mode. Sets the parents as well.
+ ********************************************************************/
+void Player :: normalMode() {
+	Living :: normalMode();
+	//rect1.normalMode();
+	//rect2.normalMode();
+	hand.normalMode();
+}
+
+/********************************************************************
+ * dataMode()
+ * 	Set to data mode. Sets the parents as well. Adds a thing to
+ * 	the thing handler, for the hand...
+ ********************************************************************/
+void Player :: dataMode(ThingHandler * sss, unsigned index) {
+	Living :: dataMode(sss, index);
+	rect1.dataMode(sss, sss->addThing());
+	rect2.dataMode(sss, sss->addThing());
+	hand.dataMode(sss, sss->addThing());
+}
+
+/********************************************************************
+ * setImageHandler()
+ * 	Overloaded from Living. Needs to be over written, because this
+ * 	sets the hand's image handler as well.
+ ********************************************************************/
+void Player :: setImageHandler(ImageHandler * ih) {
+	Living :: setImageHandler(ih);
+	hand.setImageHandler(ih);
+}
+
+/********************************************************************
+ * interact()
+ * 	Inherited from Thing. Performs the act of what happens with
+ * 	another object within the render distance.
+ ********************************************************************/
+bool Player :: interact(Rectangle * other) {
+	bool intersects = willIntersect(*other);
+
+	if (other->type() == ID_ENEMY) {
+		if (intersects) {
+			short curPos = other->nextRelativePosition(*this);
+			if (curPos == LEFT) {
+				other->setHS(getX() + getHS() - other->getX() - other->getW());
+			} else if (curPos == RIGHT) {
+				other->setHS(getX() + getHS() + getW() - other->getX());
+			} else if (curPos == DOWN) {
+				other->setVS(getY() + getVS() - other->getY() - other->getH());
+			} else if (curPos == UP) {
+				other->setVS(getY() + getVS() + getH() - other->getY());
+			} else {
+				// nextRelativePosition wont return anything else.
+				assert(false);
+			}
+		}
+	}
+
+	if (other->type() == ID_ENEMY) {
+		Enemy * enemy = (Enemy *) other;
+		bool hurtOnce = false;
+
+		if (enemy->isIntersecting(getHandRect2())) {
+			hurtOnce = true;
+
+			float acc = PLAYER_MAXSPEED;
+			float cx = enemy->getCX() - getCX();
+			float cy = enemy->getCY() - getCY();
+			float angle = atan(cy / cx);
+			float dx = abs(cos(angle) * acc);
+			float dy = abs(sin(angle) * acc);
+
+			if (cx < 0.0f)
+				enemy->setHS(-dx + getHS());
+			else
+				enemy->setHS( dx + getHS());
+
+			if (cy < 0.0f)
+				enemy->setVS(-dy + getVS());
+			else
+				enemy->setVS( dy + getVS());
+		}
+
+		if (enemy->isIntersecting(getHandRect1())) {
+			hurtOnce = true;
+
+			float acc = PLAYER_MAXSPEED / 2;
+			float cx = enemy->getCX() - getCX();
+			float cy = enemy->getCY() - getCY();
+			float angle = atan(cy / cx);
+			float dx = abs(cos(angle) * acc);
+			float dy = abs(sin(angle) * acc);
+
+			if (cx < 0.0f)
+				enemy->setHS(-dx + getHS());
+			else
+				enemy->setHS( dx + getHS());
+
+			if (cy < 0.0f)
+				enemy->setVS(-dy + getVS());
+			else
+				enemy->setVS( dy + getVS());
+		}
+
+		if (hurtOnce)
+			enemy->hurt(PLAYER_DAMAGE);
+	}
+
+	return intersects;
+}

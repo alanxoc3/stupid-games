@@ -1,0 +1,82 @@
+SIMPLE GAME - Alan Morgan
+
+PROJECT DEFINITION
+   This is a simple game. The idea is to create a full fledged Allegro based game, but have it simple at the same time. This game concept will be enjoyed by the player and beneficial to the programmer learning and relearning programming concepts. The use of modularity will be encouraged for this program.
+
+
+GAME PLAY
+The start menu simply consists of a "start" button that may be pressed down.
+Basically, you have a simple object that can move around the thing, it is shaped similar to the ghosts off of pacman. Your player can move up, down, left, right, upright, upleft, downright, and downleft. There is a stationary yellow dot on the screen, the player must touch a yellow dot. This reveals a black dot at a random point on the screen. Black dots kill the player. The player must then dodge the black dots and obtain the yellow dots. Every time the player touches a yellow dot, the player's score increases. But to increase the difficulty, every 10 points, all the black dots on the screen increase speed. When the game has been completed, the start screen shows up again, with the high score and your score.
+
+DESIGN
+A file will have:
+   public static int main();
+
+I need a SimpleGame class.
+   public void start();
+
+   private GamePlayer game;
+   private StartScreen intro;
+   private Score gameScore;
+
+I need a StartScreen class. constructor(Score s)
+   public void loop();
+   public bool canGameStart();
+
+   private StartButton theButton;
+   private Image background;
+
+I need a StartButton class.
+   public void draw();
+   public bool wasClicked();
+
+I need a GamePlayer class. constructor(Score s)
+   public void loop();
+   public isGameOver();
+   private void input();
+   private void draw();
+   private void move();
+   private void collision();
+
+   private Player ghostMan;
+   private vector<Sprite> spriteList;
+   private bool gameOver;
+
+I need a Score class, not a Sprite.
+   public void drawScore();
+   public int getScore();
+   public void addScore();
+   public void saveScore();
+   public void resetScore();
+
+I need a Sprite interface:
+   public void move();
+   public void input(Keyboard key);
+   public void draw();
+   public static bool testCollision(Sprite s1, Sprite s2);
+   public bool testCollision(Sprite s1);
+   public void collide(Sprite s);
+   public bool isAlive();
+   public float getX();
+   public float getY();
+   public float getW();
+   public float getH();
+   public float setX();
+   public float setY();
+   public float setW();
+   public float setH();
+   public void setLivingStatus();
+
+   private float hspeed;
+   private float vspeed;
+
+I need a Player class.
+   private enum keys; //up, left, upright...
+
+I need a BadDot class
+   public void create(vector<Sprite> spriteList); //Needs to be able to create in an open space.
+
+I need a GoodDot class
+   public void create(vector<Sprite> spriteList); //Needs to be able to create in an open space.
+
+I need an input thing, a drawing thing, a collision thing.

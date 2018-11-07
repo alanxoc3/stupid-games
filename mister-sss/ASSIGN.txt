@@ -1,0 +1,12 @@
+# ASSIGN.txt
+# This file will tell each person what they need to be working on, or
+# are working on. Anyone may post suggestions on here.
+
+ASSIGNMENT 1 - THU 22
+FINISH ALL HEADERS BY THU 31
+
+Alan:
+Living, Thing, Rectangle, Possibly other....
+
+Johnathan:
+Player and enemies.
